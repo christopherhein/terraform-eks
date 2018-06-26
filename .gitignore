@@ -1,4 +1,6 @@
 aws-auth.yaml
 kubeconfig
 terraform.tfstate
+terraform.tfstate.backup
 .terraform
+.DS_Store
