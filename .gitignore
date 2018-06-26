@@ -1,0 +1,4 @@
+aws-auth.yaml
+kubeconfig
+terraform.tfstate
+.terraform
