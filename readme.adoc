@@ -1,0 +1,404 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+= Terraform EKS Cluster Operations
+
+This repo gives a quick getting started guide for deploying your Amazon EKS
+cluster using Hashicorp Terraform. It contains all the cluster logic in the
+`./cluster` directory then you can use the same setup to deploy workloads as
+shown in the `./kubernetes` directory.
+
+
+.Provisioning and Managing Kubernetes on AWS with HashiCorp Terraform Webinar
+[NOTE]
+This repo was created for the
+link:https://www.hashicorp.com/resources/provisioning-and-managing-kubernetes-aws-terraform[Provisioning and Managing Kubernetes on AWS with HashiCorp Terraform Webinar] in June of
+2018. If you'd like to watch the recording click the Youtube video below.
+
+image::https://img.youtube.com/vi/PjxJzyP_bdU/0.jpg[link="https://www.youtube.com/watch?v=PjxJzyP_bdU"]
+
+== Installation
+
+We first need to make sure we have all the necessary components installed. This
+means installing:
+
+* link:https://github.com/kubernetes-sigs/aws-iam-authenticator/[AWS IAM
+  Authenticator]
+* link:https://www.terraform.io/intro/getting-started/install.html[Terraform]
+* link:https://kubernetes.io/docs/tasks/tools/install-kubectl/[kubectl]
+
+The rest of this `readme` will walk through installing these components on
+macOS.
+
+=== Install AWS IAM Authenticator
+
+For authentication with an Amazon Elastic Container Service for Kubernetes you
+must use Amazon Identity and Access Management. To do so you must use an open
+source tool called the AWS IAM Authenticator, this was built in partnership with
+Heptio. After EKS was launched it was then migrated to ownership via SIG-AWS.
+
+To install this, you can either use the vendored and compiled versions from the
+Github releases page or you can use `go` to install from source.
+
+[source,shell]
+----
+go get -u github.com/kubernetes-sigs/aws-iam-authenticator
+----
+
+Now that we have this installed we should make sure it is in our path, to check
+this we can run `aws-iam-authenticator` this should return the help
+documentation for the binary.
+
+Once we have validated that it is installed we can move on to installing
+`terraform`.
+
+=== Install Terraform
+
+To install `terraform` on macOS, the easiest way I have found is to use the
+`homebrew` packaged version. 
+
+[source,shell]
+----
+brew install terraform
+----
+
+This, like any `homebrew` package will install the `terraform` binaries into
+`/usr/local/bin/` which should already be configured in your path.
+
+With `terraform` installed we can then move on to installing the Kubernetes CLI,
+`kubectl`
+
+=== Install kubectl
+
+To install `kubectl` the easiest way again is to use `homebrew` on macOS.
+
+[source,shell]
+----
+brew install kubernetes-cli
+----
+
+After this has completed we should have access to `kuebctl`.
+
+== Clone This Repo
+
+Now that we have all the requirements in place we can clone or fork this repo to
+get started.
+
+[source,shell]
+----
+git clone https://github.com/christopherhein/terraform-eks.git
+----
+
+== Provisioning an EKS Cluster w/ Terraform
+
+Before we can get started we need to make sure we have all the providers
+configured and we are in the right directly.
+
+[source,shell]
+----
+cd cluster/
+----
+
+Now we're in our `cluster` directory we can then run `init` to load all the
+providers into the current session.
+
+[source,shell]
+----
+terraform init
+----
+
+[.output]
+....
+
+Initializing provider plugins...
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+....
+
+Now that we have `terraform` initialized and ready for use we can run `plan`
+which will show us what the config files will be creating. The output below has
+been truncated for breviety.
+
+[source,shell]
+----
+terraform apply
+----
+
+[.output]
+....
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+
+data.http.workstation-external-ip: Refreshing state...
+data.aws_region.current: Refreshing state...
+data.aws_availability_zones.available: Refreshing state...
+data.aws_ami.eks-worker: Refreshing state...
+
+------------------------------------------------------------------------
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  + aws_autoscaling_group.demo
+    ...
+  + aws_eks_cluster.demo
+    ...
+  + aws_iam_instance_profile.demo-node
+    ...
+  + aws_iam_role.demo-cluster
+    ...
+  + aws_iam_role.demo-node
+    ...
+  + aws_iam_role_policy_attachment.demo-cluster-AmazonEKSClusterPolicy
+    ...
+  + aws_iam_role_policy_attachment.demo-cluster-AmazonEKSServicePolicy
+    ...
+  + aws_iam_role_policy_attachment.demo-node-AmazonEC2ContainerRegistryReadOnly
+    ...
+  + aws_iam_role_policy_attachment.demo-node-AmazonEKSWorkerNodePolicy
+    ...
+  + aws_iam_role_policy_attachment.demo-node-AmazonEKS_CNI_Policy
+    ...
+  + aws_internet_gateway.demo
+    ...
+  + aws_launch_configuration.demo
+    ...
+  + aws_route_table.demo
+    ...
+  + aws_route_table_association.demo[0]
+    ...
+  + aws_route_table_association.demo[1]
+    ...
+  + aws_security_group.demo-cluster
+    ...
+  + aws_security_group.demo-node
+    ...
+  + aws_security_group_rule.demo-cluster-ingress-node-https
+    ...
+  + aws_security_group_rule.demo-cluster-ingress-workstation-https
+    ...
+  + aws_security_group_rule.demo-node-ingress-cluster
+    ...
+  + aws_security_group_rule.demo-node-ingress-self
+    ...
+  + aws_subnet.demo[0]
+    ...
+  + aws_subnet.demo[1]
+    ...
+  + aws_vpc.demo
+    ...
+
+
+Plan: 24 to add, 0 to change, 0 to destroy.
+
+------------------------------------------------------------------------
+
+Note: You didn't specify an "-out" parameter to save this plan, so Terraform
+can't guarantee that exactly these actions will be performed if
+"terraform apply" is subsequently run.
+....
+
+With this output you can see all the resources that will be created on your
+behalf using `terraform`. If all this looks okay, we can then provision the
+cluster.
+
+[source,shell]
+----
+terraform apply
+----
+
+This will then go an provision the Security Groups, the VPC, the Subnets, the
+EKS cluster, and the worker nodes. It should take around 10 minutes to bring up
+the full cluster.
+
+Before we can use the cluster we need to output both the `kubeconfig` and the
+`aws-auth` configmap which will allow our nodes to connect to the cluster.
+
+[source,shell]
+----
+terraform output kubeconfig > kubeconfig
+----
+
+This will output the `kubeconfig` file to your local directory, make sure you
+keep track of where this file lives, we'll need it for the deployment of
+services.
+
+Next we will use the same `output` subcommand to output the `aws-auth` configmap
+which will give the worker nodes the ability to connect to the cluster.
+
+[source,shell]
+----
+terraform output config-map-aws-auth > aws-auth.yaml
+----
+
+With this file and the `kubeconfig` file out you can then configure `kubectl` to
+use the `kubeconfig` file and apply the `aws-auth` configmap.
+
+== Connecting to your EKS Cluster
+
+Now that we have all the files in-place we can then `export` out `kubeconfig`
+path and try using `kubectl`.
+
+[source,shell]
+----
+export KUBECONFIG=kubeconfig
+----
+
+Now we can check the connection to the Amazon EKS cluster but running `kubectl`.
+
+[source,shell]
+----
+kubectl get all
+----
+
+[.output]
+....
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.100.0.1   <none>        443/TCP   10m
+....
+
+With this working we can then `apply` the `aws-auth` configmap.
+
+[source,shell]
+----
+kubectl apply -f aws-auth.yaml
+----
+
+[.output]
+....
+configmap/aws-auth created
+....
+
+Now if we go an list `nodes` we should see that we have a full cluster up and
+running and ready to use!
+
+[source,shell]
+----
+kubectl get nodes
+----
+
+== Deploy K8s Resources to EKS with Terraform
+
+Now the we have the cluster in-place and ready to use we can then use
+`terraform` to describe some of our resources, this is analgous to using
+something like `ksonnet` or helm but with the benefit of having variables that
+we could use from the infrastructure instead of just what we've defined.
+
+Before we get started I have placed this configurations in a separat directory
+`kubernetes/` let's `cd` into that directory.
+
+[source,shell]
+----
+cd ../kubernetes/
+----
+
+Now that we are in this directory we need to again make sure we `init` to
+install all the correct `terraform` providers.
+
+[source,shell]
+----
+terraform init
+----
+
+[.output]
+....
+Initializing provider plugins...
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+....
+
+With is done we can then run `plan` to see what will be applied to the cluster.
+In the `main.tf` file we defined a couple Kubernetes resources that will get
+deployed for demo purposes.
+
+[source,shell]
+----
+terraform plan
+----
+
+[.output]
+....
+Refreshing Terraform state in-memory prior to plan...
+The refreshed state will be used to calculate this plan, but will not be
+persisted to local or remote state storage.
+
+data.external.aws_iam_authenticator: Refreshing state...
+
+------------------------------------------------------------------------
+
+An execution plan has been generated and is shown below.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  + kubernetes_namespace.example
+    ...
+  + kubernetes_pod.nginx
+    ...
+  + kubernetes_service.nginx
+    ...
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+------------------------------------------------------------------------
+
+Note: You didn't specify an "-out" parameter to save this plan, so Terraform
+can't guarantee that exactly these actions will be performed if
+"terraform apply" is subsequently run.
+....
+
+After doing a quick review of the `plan` we can see this creates a namespace, a
+pod, and a service. We can then apply this using `terraform`.
+
+[source,shell]
+----
+terraform apply
+----
+
+This will take a coupe seconds and you can then list all resources in the
+`demo-service` namespace again using `kubectl`.
+
+[source,shell]
+----
+kubectl get all --namespace demo-service
+----
+
+== Conclusion
+
+As you can see by this demo you can do full cluster operations for your Amazon
+EKS cluster using `terraform`. You have the ability to provision a highly
+available Kubernetes cluster backed by Amazon EKS and then deploy any number of
+Kubernetes resources into the cluster using `terraform` and the Kubernetes
+provider.
+
+If you'd like to customize this repo for your own needs you can take a deeper
+dive into each file in the `cluster/` and `kubernetes/` directories which are
+fully commented to explain what each part is doing.
+
+Questions, comments, please file Github issues. :tada:
