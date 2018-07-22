@@ -1,6 +1,8 @@
-provider "external" {}
+provider "external" {
+  version = "~> 1.0"
+}
 
-data "external" "heptio_authenticator_aws" {
+data "external" "aws_iam_authenticator" {
   program = ["bash", "${path.module}/authenticator.sh"]
 
   query {
@@ -9,7 +11,8 @@ data "external" "heptio_authenticator_aws" {
 }
 
 provider "kubernetes" {
-  token = "${data.external.heptio_authenticator_aws.result.token}"
+  token = "${data.external.aws_iam_authenticator.result.token}"
+  version = "~> 1.1"
 }
 
 
